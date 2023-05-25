@@ -9,9 +9,6 @@
 #include <stdlib.h>
 
 
-/* FUNCTIONS */
-int ft_atoi(const char *nptr);
-
 
 /* STRUCTURES */
 typedef struct s_data {
@@ -39,6 +36,7 @@ typedef struct	s_table {
 	t_data	*data;
 	t_mutex *mutex;
 	t_philo *arr_philos;
+	pthread_t	*arr_threads;
 } t_table;
 
 typedef enum {
@@ -47,6 +45,12 @@ typedef enum {
 	INPUT_FAIL,
 	INIT_FAIL
 }	t_exit_code;
+
+/* FUNCTIONS */
+int ft_atoi(const char *nptr);
+
+/* init.c */
+t_exit_code	init(t_table **table, int argc, char **argv);
 
 /* MACROS */
 

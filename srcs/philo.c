@@ -6,160 +6,80 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/24 11:32:39 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/05/24 18:00:52 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/05/25 14:15:04 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-t_exit_code	init_data(t_data **p_data, int argc, char **argv)
+void	philo_sleep(void *philo)
 {
-	static t_exit_code	exit_code;
-	t_data				*data;
-
-	data = malloc(sizeof(t_data));
-	CHECK_MALLOC(data, exit_code);
-	if (exit_code == SUCCESS)
-	{
-		data->num_philos = ft_atoi(argv[1]);
-		data->time_to_die = ft_atoi(argv[2]); 
-		data->time_to_eat = ft_atoi(argv[3]);
-		data->time_to_sleep = ft_atoi(argv[4]);
-		data->num_forks = data->num_philos - 1;
-		if (argc == 6)
-			data->n_has_to_eat = ft_atoi(argv[5]);
-		else
-			data->n_has_to_eat = -1;
-	}
-	*p_data = data;
-	return (exit_code);
+	printf("begins sleeping\n");
+	usleep(900000);
+	printf("finished sleeping\n");
 }
 
-t_exit_code	init_mutex(t_mutex **p_mutex, t_data *data)
+void	*philo_eat(void *philo)
 {
-	static t_exit_code		exit_code;
-	t_mutex					*mutex;
-	pthread_mutex_t			*arr_forks;
-	pthread_mutex_t			print;
+	t_philo	*philosopher;
 
-	mutex = malloc(sizeof(t_mutex));
-	CHECK_MALLOC(mutex, exit_code);
-	if (exit_code == SUCCESS)
-	{
-		mutex->arr_forks = malloc(sizeof(pthread_mutex_t) * data->num_forks);
-		//printf("mutex pointer is %p\n", mutex->arr_forks);
-		CHECK_MALLOC(mutex->arr_forks, exit_code);
-	}
-	*p_mutex = mutex;
-	return (exit_code);
+	philosopher = (t_philo *)philo;
+	if (philosopher->index % 2 == 0)
+		usleep(100000);
+	pthread_mutex_lock(&(philosopher->mutex->arr_forks[0]));
+	printf("%i begins eating\n", philosopher->index);
+	usleep(philosopher->data->time_to_eat);
+	printf("finished eating\n");
+	pthread_mutex_unlock(&(philosopher->mutex->arr_forks[0]));
+	philo_sleep(philosopher);
+	return (NULL);
 }
 
-t_exit_code	init_philos(t_philo **p_arr_philos, t_mutex *mutex, t_data *data)
-{
-	static		t_exit_code	exit_code;
-	t_philo		*arr_philos;
-	int			i;
-
-	i = 0;
-	arr_philos = malloc(sizeof(t_philo) * data->num_philos);
-	CHECK_MALLOC(arr_philos, exit_code);
-	if (exit_code == SUCCESS)
-	{
-		while (i < data->num_philos)
-		{
-			(arr_philos[i]).index = i + 1;
-			(arr_philos[i]).mutex = mutex;
-			(arr_philos[i]).data = data;
-			(arr_philos[i]).n_eaten = 0;
-			i++;
-		}
-	}
-	*p_arr_philos = arr_philos;
-	return (exit_code);
-}
-
-
-t_exit_code	init_table(t_table **p_table, t_data *data, t_mutex *mutex, t_philo *arr_philos)
-{
-	static t_exit_code	exit_code;
-	t_table				*table;
-
-	table = malloc(sizeof(t_table));
-	CHECK_MALLOC(table, exit_code);
-	if (exit_code == SUCCESS)
-	{
-		table->mutex = mutex;
-		table->data = data;
-		table->arr_philos = arr_philos;
-	}
-	*p_table = table;
-	return (exit_code);
-}
-
-/*
-void init_check_exit(t_exit_code exit)
-{
-	
-}
-*/
-
-void	cleanup(t_table *table, t_philos *arr_philos, t_mutex *mutex, t_data *data)
-
-t_exit_code	init(t_table **table, int argc, char **argv)
-{
-	t_exit_code	exit;
-	t_data *data;
-	t_mutex *mutex;
-	t_philo *philos;
-
-	exit = SUCCESS;
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_data(&data, argc, argv)));
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex(&mutex, data)));
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_philos(&philos, mutex, data)));
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_table(table, data, mutex, philos)));
-	if (exit == SUCCESS)
-		return (SUCCESS);
-	else
-	{
-		cleanup(*table, philos, mutex, data);
-		return (exit);
-	}
-}
-
-void	print_error_msg(t_exit_code exit_code)
-{
-	if (exit_code == MALLOC_FAIL)
-		printf("Dynamic memory allocation failed\n");
-	else if (exit_code == INPUT_FAIL)
-		printf("Invalid Input\n");
-	else if (exit_code == INIT_FAIL)
-		printf("Fail in initialization\n");
-}
-
-void print_input(t_data *data, t_philo  *arr_philos)
+int	run_threads(t_table *table)
 {
 	int	i;
+	int	n_philosophers;
 
 	i = 0;
-	while (i < data->num_philos)
+	n_philosophers = table->data->num_philos;
+	while (i < n_philosophers)
 	{
-		printf("Philosopher num %i, index: %i\n", i + 1, (arr_philos[i]).index);
-		printf("Philosopher num %i, num_eaten: %i\n", i + 1, (arr_philos[i]).n_eaten);
+		pthread_create(&(table->arr_threads[i]), NULL, philo_eat, &(table->arr_philos)[i]);
 		i++;
 	}
+	return (0);
+}
+
+int	wait_threads(t_table *table)
+{
+	int	i;
+	int	n_philosophers;
+
+	i = 0;
+	n_philosophers = table->data->num_philos;
+	while (i < n_philosophers)
+	{
+		pthread_join(table->arr_threads[i], NULL);
+		i++;
+	}
+	return (0);
 }
 
 int main(int argc, char **argv)
 {
 	t_table *table;
-	t_exit_code exit_code;
-
+	t_exit_code exit;
+	pthread_t tid1, tid2;
+	
 	// check_input(argc, argv)
-	exit_code = init(&table, argc, argv);
-	//printf("mutex pointer is %p\n", table->mutex->arr_forks);
+	exit = init(&table, argc, argv);
 
+	run_threads(table);
+
+	wait_threads(table);
+	pthread_mutex_destroy(&(table->mutex->arr_forks[0]));
 	//print_input(table->data, table->arr_philos);	
 	// print EXIT OF PROGRAM, if SUCCESS print nothing
-	if (exit_code != SUCCESS)
-		print_error_msg(exit_code);
+	//if (exit != SUCCESS)
+	//	print_error_msg(exit);
 }
