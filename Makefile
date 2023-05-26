@@ -31,4 +31,7 @@ ${NAME}: ${OBJS}
 	cc -c -o $@ $< ${INCLUDES_DIR} 
 
 test:
-	./philo 2 3 4 5
+	./philo 3 6000 500000 5
+
+test2:
+	./philo 3 600 500000 5

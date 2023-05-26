@@ -12,27 +12,102 @@
 
 #include "philo.h"
 
-void	philo_sleep(void *philo)
-{
-	printf("begins sleeping\n");
-	usleep(900000);
-	printf("finished sleeping\n");
+void	*philo_eat(t_philo *philo);
+
+long long current_timestamp_ms(void) {
+  struct timeval te;
+  long long milliseconds;
+    
+  gettimeofday(&te, NULL);
+  // this can probably fail as well
+  milliseconds = te.tv_sec * 1000LL + te.tv_usec / 1000;
+  return (milliseconds);
 }
 
-void	*philo_eat(void *philo)
+void  print_action(t_philo *philo, t_action action)
+{
+  int philo_index;
+  long long time;
+
+  philo_index = philo->index;
+  pthread_mutex_lock(&(philo->mutex->print));
+  time = current_timestamp_ms();
+  if (action == EAT)
+    printf("%lld %i is eating\n", time, philo_index);
+  if (action == SLEEP)
+    printf("%lld %i is sleeping\n", time, philo_index);
+  if (action == THINK)
+    printf("%lld %i is thinking\n", time, philo_index);
+  if (action == DIE)
+    printf("%lld %i died\n", time, philo_index);
+  if (action == FORK)
+    printf("%lld %i has taken a fork\n", time, philo_index);
+  pthread_mutex_unlock(&(philo->mutex->print));
+}
+
+void philo_think(t_philo *philo)
+{
+  print_action(philo, THINK);
+  philo_eat(philo);
+}
+
+void	philo_sleep(t_philo *philo)
+{
+  print_action(philo, SLEEP);
+  usleep(philo->data->time_to_sleep);
+  philo_think(philo);
+}
+
+int philo_died(t_philo *philo)
+{
+  pthread_mutex_unlock(&(philo->mutex->arr_forks[0]));
+  pthread_mutex_lock(&(philo)->mutex->sim_protect);
+  philo->mutex->sim = 1;
+  pthread_mutex_unlock(&(philo)->mutex->sim_protect);
+  print_action(philo, DIE);
+  return (1);
+}
+
+int is_philo_dead(t_philo *philo)
+{
+  long long time_now;
+  long long ms_since_last_meal;
+
+  time_now = current_timestamp_ms();
+  ms_since_last_meal = time_now - philo->last_meal_ms;
+  if (ms_since_last_meal > philo->data->time_to_die)
+    return (philo_died(philo));
+  else
+    return (0);
+}
+
+void	*philo_eat(t_philo *philo)
+{
+  if (philo->mutex->sim == 1)
+    return (NULL);
+	if (philo->index % 2 == 0)
+		usleep(100000);
+  // have here a strategy that depending on the modulo of the index
+  // will check the right fork first or the left fork first
+	pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
+  if (is_philo_dead(philo) == 1)
+    return (NULL);
+	print_action(philo, FORK);
+  print_action(philo, EAT);
+	usleep(philo->data->time_to_eat);
+	pthread_mutex_unlock(&(philo->mutex->arr_forks[0]));
+	philo_sleep(philo);
+	return (NULL);
+}
+
+void *start_simulation(void *philo)
 {
 	t_philo	*philosopher;
 
 	philosopher = (t_philo *)philo;
-	if (philosopher->index % 2 == 0)
-		usleep(100000);
-	pthread_mutex_lock(&(philosopher->mutex->arr_forks[0]));
-	printf("%i begins eating\n", philosopher->index);
-	usleep(philosopher->data->time_to_eat);
-	printf("finished eating\n");
-	pthread_mutex_unlock(&(philosopher->mutex->arr_forks[0]));
-	philo_sleep(philosopher);
-	return (NULL);
+  philosopher->last_meal_ms = current_timestamp_ms();
+  philo_eat(philosopher);
+  return (NULL);
 }
 
 int	run_threads(t_table *table)
@@ -44,7 +119,8 @@ int	run_threads(t_table *table)
 	n_philosophers = table->data->num_philos;
 	while (i < n_philosophers)
 	{
-		pthread_create(&(table->arr_threads[i]), NULL, philo_eat, &(table->arr_philos)[i]);
+		pthread_create(&(table->arr_threads[i]), NULL, start_simulation,
+                &(table->arr_philos)[i]);
 		i++;
 	}
 	return (0);

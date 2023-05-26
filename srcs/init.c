@@ -25,7 +25,7 @@ t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 		data->time_to_die = ft_atoi(argv[2]); 
 		data->time_to_eat = ft_atoi(argv[3]);
 		data->time_to_sleep = ft_atoi(argv[4]);
-		data->num_forks = data->num_philos - 1;
+		data->num_forks = data->num_philos;
 		if (argc == 6)
 			data->n_has_to_eat = ft_atoi(argv[5]);
 		else
@@ -49,6 +49,21 @@ t_exit_code	init_mutex_forks(t_mutex *mutex, int num_forks)
 	return (SUCCESS);
 }
 
+t_exit_code init_mutex_print(t_mutex *mutex)
+{
+  pthread_mutex_init(&(mutex->print), NULL);
+  // this can possibly fail as well
+  return (SUCCESS);
+}
+
+t_exit_code init_mutex_simulation(t_mutex *mutex)
+{
+  pthread_mutex_init(&(mutex->sim_protect), NULL);
+  mutex->sim = 0;
+  // this can possibly fail as well
+  return (SUCCESS);
+}
+
 t_exit_code	init_mutex(t_mutex **p_mutex, t_data *data)
 {
 	static t_exit_code		exit;
@@ -64,6 +79,10 @@ t_exit_code	init_mutex(t_mutex **p_mutex, t_data *data)
 		//printf("mutex pointer is %p\n", mutex->arr_forks);
 		CHECK_MALLOC(mutex->arr_forks, exit);
 		ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(mutex, data->num_forks)));
+		// still needs protection
+		ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_print(mutex)));
+		// still needs protection
+		ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_simulation(mutex)));
 		// still needs protection
 	}
 	*p_mutex = mutex;

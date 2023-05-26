@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
-
-
+#include <sys/time.h>
 
 /* STRUCTURES */
 typedef struct s_data {
@@ -23,6 +22,8 @@ typedef struct s_data {
 typedef struct s_mutex {
 	pthread_mutex_t	*arr_forks;
 	pthread_mutex_t	print;
+  pthread_mutex_t sim_protect;
+  int sim;
 }	t_mutex;
 
 typedef struct s_philo {
@@ -30,6 +31,7 @@ typedef struct s_philo {
 	t_data *data;
 	t_mutex *mutex;
 	int	n_eaten;
+  long long last_meal_ms;
 }	t_philo;
 
 typedef struct	s_table {
@@ -45,6 +47,14 @@ typedef enum {
 	INPUT_FAIL,
 	INIT_FAIL
 }	t_exit_code;
+
+typedef enum {
+  EAT,
+  SLEEP,
+  THINK,
+  DIE,
+  FORK
+} t_action;
 
 /* FUNCTIONS */
 int ft_atoi(const char *nptr);
