@@ -14,6 +14,21 @@
 
 void	*philo_eat(t_philo *philo);
 
+int check_sim_status(t_philo *philo)
+{
+  pthread_mutex_lock(&(philo)->mutex->sim_protect);
+  if (philo->mutex->sim == 1)
+  {
+    pthread_mutex_unlock(&(philo)->mutex->sim_protect);
+    return (1);
+  }
+  else
+  {
+    pthread_mutex_unlock(&(philo)->mutex->sim_protect);
+    return (0);
+  }
+}
+
 long long current_timestamp_ms(void) {
   struct timeval te;
   long long milliseconds;
@@ -24,13 +39,15 @@ long long current_timestamp_ms(void) {
   return (milliseconds);
 }
 
-void  print_action(t_philo *philo, t_action action)
+void  *print_action(t_philo *philo, t_action action)
 {
   int philo_index;
   long long time;
 
   philo_index = philo->index;
   pthread_mutex_lock(&(philo->mutex->print));
+  if (check_sim_status(philo) == 1)
+    return (NULL);
   time = current_timestamp_ms();
   if (action == EAT)
     printf("%lld %i is eating\n", time, philo_index);
@@ -38,21 +55,23 @@ void  print_action(t_philo *philo, t_action action)
     printf("%lld %i is sleeping\n", time, philo_index);
   if (action == THINK)
     printf("%lld %i is thinking\n", time, philo_index);
-  if (action == DIE)
-    printf("%lld %i died\n", time, philo_index);
   if (action == FORK)
     printf("%lld %i has taken a fork\n", time, philo_index);
   pthread_mutex_unlock(&(philo->mutex->print));
 }
 
-void philo_think(t_philo *philo)
+void *philo_think(t_philo *philo)
 {
+  if (check_sim_status(philo) == 1)
+    return (NULL);
   print_action(philo, THINK);
   philo_eat(philo);
 }
 
-void	philo_sleep(t_philo *philo)
+void	*philo_sleep(t_philo *philo)
 {
+  if (check_sim_status(philo) == 1)
+    return (NULL);
   print_action(philo, SLEEP);
   usleep(philo->data->time_to_sleep);
   philo_think(philo);
@@ -60,8 +79,14 @@ void	philo_sleep(t_philo *philo)
 
 int philo_died(t_philo *philo)
 {
+  long long time;
+  
   pthread_mutex_unlock(&(philo->mutex->arr_forks[0]));
   pthread_mutex_lock(&(philo)->mutex->sim_protect);
+
+  time = current_timestamp_ms();
+  if (check_sim_status(philo) == 0)
+    printf("%lld %i died\n", time, philo->index);
   philo->mutex->sim = 1;
   pthread_mutex_unlock(&(philo)->mutex->sim_protect);
   print_action(philo, DIE);
@@ -83,10 +108,10 @@ int is_philo_dead(t_philo *philo)
 
 void	*philo_eat(t_philo *philo)
 {
-  if (philo->mutex->sim == 1)
+  if (check_sim_status(philo) == 1)
     return (NULL);
-	if (philo->index % 2 == 0)
-		usleep(100000);
+	// if (philo->index % 2 == 0)
+	// 	usleep(100000);
   // have here a strategy that depending on the modulo of the index
   // will check the right fork first or the left fork first
 	pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
