@@ -102,7 +102,7 @@ t_exit_code	init_philos(t_philo **p_arr_philos, t_mutex *mutex, t_data *data)
 	{
 		while (i < data->num_philos)
 		{
-			(arr_philos[i]).index = i + 1;
+			(arr_philos[i]).index = i;
 			(arr_philos[i]).mutex = mutex;
 			(arr_philos[i]).data = data;
 			(arr_philos[i]).n_eaten = 0;

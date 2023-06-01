@@ -12,7 +12,7 @@
 
 NAME = philo
 
-FILENAMES = philo init utils
+FILENAMES = philo init time utils
 
 SRCS_DIR = ./srcs/
 SRCS = $(addprefix $(SRCS_DIR), $(addsuffix .c, $(FILENAMES)))
@@ -31,7 +31,10 @@ ${NAME}: ${OBJS}
 	cc -c -o $@ $< ${INCLUDES_DIR} 
 
 test:
-	./philo 3 6000 500000 5
+	./philo 3 6000 500000 1000
 
 test2:
 	./philo 3 600 500000 5
+
+test3:
+	./philo 10 60000 500000 5

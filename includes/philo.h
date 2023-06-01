@@ -62,6 +62,9 @@ int ft_atoi(const char *nptr);
 /* init.c */
 t_exit_code	init(t_table **table, int argc, char **argv);
 
+/*time.c */
+long long current_timestamp_ms(void); 
+
 /* MACROS */
 
 #define ON_SUCCESS(exit_code, function) ((exit_code) == SUCCESS ? (function) : 0)
