@@ -6,7 +6,7 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/24 11:32:39 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/05/25 14:15:04 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/06/27 18:05:12 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,14 +31,14 @@ int check_sim_status(t_philo *philo)
 }
 
 
-void  *print_action(t_philo *philo, t_action action)
+void  print_action(t_philo *philo, t_action action)
 {
   int philo_index;
   long long time;
 
   philo_index = philo->index;
-  if (check_sim_status(philo) == 1)
-    return (NULL);
+  //if (check_sim_status(philo) == 1)
+  //  return (NULL);
   pthread_mutex_lock(&(philo->mutex->print));
   time = current_timestamp_ms();
   if (action == EAT)
@@ -102,24 +102,24 @@ int is_philo_dead(t_philo *philo)
 
 void philo_pickup_forks2(t_philo *philo)
 {
-  int philo_index;
-  int last_philo;
+	int philo_index;
+	int last_philo;
 
-  philo_index = philo->index;
-  last_philo = philo->data->num_philos - 1;
+	philo_index = philo->index;
+	last_philo = philo->data->num_philos - 1;
 	pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index]));
-  print_action(philo, FORK);
+	print_action(philo, FORK);
 	if (philo_index == last_philo)
-  {
-    pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
-    // printf("philo %i took fork %i\n", philo_index, 0);
-  }
-  else
-  {
-    pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index + 1]));
-    // printf("philo %i took fork %i\n", philo_index, philo_index + 1);
-  }
-  print_action(philo, FORK);
+	{
+		pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
+		// printf("philo %i took fork %i\n", philo_index, 0);
+	}
+	else
+	{
+		pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index + 1]));
+		// printf("philo %i took fork %i\n", philo_index, philo_index + 1);
+	}
+	print_action(philo, FORK);
 }
 
 void philo_pickup_forks(t_philo *philo)
@@ -192,20 +192,19 @@ void philo_drop_forks(t_philo *philo)
 
 void	*philo_eat(t_philo *philo)
 {
-  if (check_sim_status(philo) == 1)
-    return (NULL);
-	philo_pickup_forks(philo);
-  // pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
-  if (is_philo_dead(philo) == 1)
-  {
-	  philo_drop_forks(philo);
-    end_simulation(philo);
-    return (NULL);
-  }
-  print_action(philo, EAT);
+	if (check_sim_status(philo) == 1)
+		return (NULL);
+	philo_pickup_forks2(philo);
+	if (is_philo_dead(philo) == 1)
+	{
+		philo_drop_forks(philo);
+		end_simulation(philo);
+		return (NULL);
+	}
+	print_action(philo, EAT);
 	usleep(philo->data->time_to_eat);
 	philo_drop_forks(philo);
-  philo_sleep(philo);
+	philo_sleep(philo);
 	return (NULL);
 }
 
@@ -214,11 +213,11 @@ void *start_simulation(void *philo)
 	t_philo	*philosopher;
 
 	philosopher = (t_philo *)philo;
-  philosopher->last_meal_ms = current_timestamp_ms();
-  // if (philosopher->index % 2 == 0)
-  //   usleep(philosopher->data->time_to_eat /2);
-  philo_eat(philosopher);
-  return (NULL);
+	philosopher->last_meal_ms = current_timestamp_ms();
+	if (philosopher->index % 2 == 0)
+		usleep(philosopher->data->time_to_eat /2);
+	philo_eat(philosopher);
+	return (NULL);
 }
 
 int	run_threads(t_table *table)
