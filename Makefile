@@ -6,7 +6,7 @@
 #    By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/05/24 13:46:23 by lwidmer           #+#    #+#              #
-#    Updated: 2023/06/27 18:02:52 by lwidmer          ###   ########.fr        #
+#    Updated: 2023/07/07 16:46:01 by lwidmer          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,7 +28,13 @@ ${NAME}: ${OBJS}
 	cc -o philo $^ 
 
 .c.o: ${SRCS}
-	cc -c -o $@ $< ${INCLUDES_DIR} 
+	cc -c -o $@ $< ${INCLUDES_DIR} -g
+
+val: ${NAME}
+	valgrind ./philo 3 6000 500000 1000 
+
+hel: ${NAME}
+	valgrind --tool=helgrind ./philo 3 6000 500000 1000 
 
 test: ${NAME}
 	./philo 3 6000 500000 1000

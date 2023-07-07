@@ -26,18 +26,24 @@ typedef struct s_mutex {
   int sim;
 }	t_mutex;
 
+typedef struct s_waiter {
+	pthread_mutex_t	print;
+}	t_waiter;
+
 typedef struct s_philo {
 	int	index;
 	t_data *data;
+	pthread_mutex_t	*arr_forks;
+	pthread_mutex_t	print;
 	t_mutex *mutex;
 	int	n_eaten;
-  long long last_meal_ms;
+	long long last_meal_ms;
 }	t_philo;
 
 typedef struct	s_table {
-	t_data	*data;
+	t_data		*data;
 	t_mutex *mutex;
-	t_philo *arr_philos;
+	t_philo		*arr_philos;
 	pthread_t	*arr_threads;
 } t_table;
 

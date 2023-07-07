@@ -6,7 +6,7 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/25 13:22:53 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/05/25 14:52:19 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/07/07 16:53:13 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,7 @@ t_exit_code	init_philos(t_philo **p_arr_philos, t_mutex *mutex, t_data *data)
 			(arr_philos[i]).mutex = mutex;
 			(arr_philos[i]).data = data;
 			(arr_philos[i]).n_eaten = 0;
+			(arr_philos[i]).last_meal_ms = 0;
 			i++;
 		}
 	}
