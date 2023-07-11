@@ -11,6 +11,7 @@
 
 /* STRUCTURES */
 typedef struct s_data {
+	pthread_mutex_t	print;
 	int num_philos;
 	int time_to_eat;
 	int	time_to_sleep;
@@ -19,30 +20,38 @@ typedef struct s_data {
 	int	n_has_to_eat;
 }	t_data;
 
+/*
 typedef struct s_mutex {
 	pthread_mutex_t	*arr_forks;
 	pthread_mutex_t	print;
-  pthread_mutex_t sim_protect;
-  int sim;
+	pthread_mutex_t sim_protect;
+	int sim;
 }	t_mutex;
+*/
 
 typedef struct s_waiter {
 	pthread_mutex_t	print;
+	pthread_mutex_t	*arr_m_philo_status;
+	int				*arr_philo_status;
+	pthread_mutex_t	*arr_m_n_eaten;
+	int				*arr_n_eaten;
+	pthread_mutex_t	*arr_forks;
 }	t_waiter;
 
 typedef struct s_philo {
-	int	index;
-	t_data *data;
+	int				index;
+	t_data			*data;
 	pthread_mutex_t	*arr_forks;
 	pthread_mutex_t	print;
-	t_mutex *mutex;
-	int	n_eaten;
-	long long last_meal_ms;
+	pthread_mutex_t	m_philo_status;
+	int				philo_status;
+	pthread_mutex_t	m_n_eaten;
+	int				n_eaten;
+	long long		last_meal_ms;
 }	t_philo;
 
 typedef struct	s_table {
 	t_data		*data;
-	t_mutex *mutex;
 	t_philo		*arr_philos;
 	pthread_t	*arr_threads;
 } t_table;
