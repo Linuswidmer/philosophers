@@ -6,7 +6,7 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/25 13:22:53 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/07/11 18:25:18 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/07/12 13:52:31 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 	return (exit_code);
 }
 
-t_exit_code	init_mutex_forks(t_mutex *waiter, int num_forks)
+t_exit_code	init_mutex_forks(t_waiter *waiter, int num_forks)
 {
 	int	i;
 
@@ -122,7 +122,7 @@ t_exit_code	init_philos(t_philo **p_arr_philos, t_waiter *waiter, t_data *data)
 }
 
 
-t_exit_code	init_table(t_table **p_table, t_data *data, t_mutex *mutex, t_philo *arr_philos)
+t_exit_code	init_table(t_table **p_table, t_data *data, t_waiter *waiter, t_philo *arr_philos)
 {
 	static t_exit_code	exit_code;
 	t_table				*table;
@@ -132,6 +132,7 @@ t_exit_code	init_table(t_table **p_table, t_data *data, t_mutex *mutex, t_philo 
 	if (exit_code == SUCCESS)
 	{
 		table->data = data;
+		table->waiter = waiter;
 		table->arr_philos = arr_philos;
 		table->arr_threads = malloc(sizeof(pthread_t) * data->num_philos);
 		CHECK_MALLOC(table->arr_threads, exit_code);
@@ -141,13 +142,14 @@ t_exit_code	init_table(t_table **p_table, t_data *data, t_mutex *mutex, t_philo 
 	return (exit_code);
 }
 
-void	cleanup(t_table *table, t_philo *arr_philos, t_mutex *mutex, t_data *data)
+void	cleanup(t_table *table, t_philo *arr_philos, t_waiter *waiter, t_data *data)
 {
 	if (data)
 		free(data);
 	else
 		return ;
-	if (mutex)
+	/*
+	if (waiter)
 	{
 		if (mutex->arr_forks)
 		{
@@ -162,6 +164,8 @@ void	cleanup(t_table *table, t_philo *arr_philos, t_mutex *mutex, t_data *data)
 	}
 	else 
 		return ;
+	-> need to change this to the waiter logic
+	*/
 	if (arr_philos)
 		free (arr_philos);
 	else
@@ -175,19 +179,16 @@ t_exit_code	init_waiter(t_waiter **p_waiter, t_data *data)
 	t_exit_code	exit_code;
 	t_waiter	*waiter;
 	int			i;
-	pthread_mutex_t arr_m_philo_status;
-	pthread_mutex_t	arr_m_n_eaten;
-	int				*arr_philo_status;
-	int				*arr_n_eaten;
 
 	i = 0;
 	exit_code = 0;
 	waiter = malloc(sizof(t_waiter));
-	arr_m_philo_status = malloc(sizeof(pthread_mutex_t) * data->num_philos);
-	arr_m_n_eaten = malloc(sizeof(pthread_mutex_t) * data->num_philos);
-	arr_philo_status = malloc(sizeof(int) * data->num_philos);
-	arr_n_eaten = malloc(sizeof(int) * data->num_philos);
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(mutex, data->num_forks)));
+	waiter->arr_m_philo_status = malloc(sizeof(pthread_mutex_t) * data->num_philos);
+	waiter->arr_m_n_eaten = malloc(sizeof(pthread_mutex_t) * data->num_philos);
+	waiter->arr_philo_status = malloc(sizeof(int) * data->num_philos);
+	waiter->arr_n_eaten = malloc(sizeof(int) * data->num_philos);
+	waiter->data = data;
+	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(waiter, data->num_forks)));
 	while(i < data->num_philos)
 	{
 		arr_philo_status[i] = 0;
@@ -211,9 +212,10 @@ t_exit_code	init(t_table **table, int argc, char **argv)
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_data(&data, argc, argv)));
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_waiter(&waiter, data)));
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_philos(&philos, waiter, data)));
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_table(table, data, mutex, philos)));
+	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_table(table, data, waiter, philos)));
+	waiter->arr_philos = table->arr_philos;
 	if (exit != SUCCESS)
-		cleanup(*table, philos, mutex, data);
+		cleanup(*table, philos, waiter, data);
 	return (exit);
 }
 
