@@ -6,13 +6,14 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/24 11:32:39 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/07/12 14:37:37 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/07/12 16:25:27 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
 void	*philo_eat(t_philo *philo);
+void	end_simulation(t_waiter *waiter, int index);
 
 int	is_philo_dead(t_philo *philo)
 {
@@ -29,13 +30,13 @@ int	is_philo_dead(t_philo *philo)
 	}
 }
 
-void  *print_action(t_philo *philo, t_action action)
+void  print_action(t_philo *philo, t_action action)
 {
 	int philo_index;
 	long long time;
 
 	philo_index = philo->index;
-	pthread_mutex_lock(&(philo->mutex->print));
+	pthread_mutex_lock(&(philo->print));
 	time = current_timestamp_ms();
 	if (action == EAT)
 		printf("%lld %i is eating\n", time, philo_index);
@@ -45,26 +46,31 @@ void  *print_action(t_philo *philo, t_action action)
 		printf("%lld %i is thinking\n", time, philo_index);
 	if (action == FORK)
 		printf("%lld %i has taken a fork\n", time, philo_index);
-	pthread_mutex_unlock(&(philo->mutex->print));
+	pthread_mutex_unlock(&(philo->print));
 }
 
 void	*philo_think(t_philo *philo)
 {
-	if (is_philo_dead(philo) == 1)
-		return (NULL);
-	print_action(philo, THINK);
-	philo_eat(philo);
+	if (is_philo_dead(philo) == 0)
+	{
+		print_action(philo, THINK);
+		philo_eat(philo);
+	}
+	return (NULL);
 }
 
 void	*philo_sleep(t_philo *philo)
 {
-	if (is_philo_dead(philo) == 1)
-		return (NULL);
-	print_action(philo, SLEEP);
-	usleep(philo->data->time_to_sleep);
-	philo_think(philo);
+	if (is_philo_dead(philo) == 0)
+	{
+		print_action(philo, SLEEP);
+		usleep(philo->data->time_to_sleep);
+		philo_think(philo);
+	}
+	return (NULL);
 }
 
+/*
 void philo_pickup_forks2(t_philo *philo)
 {
 	int philo_index;
@@ -86,8 +92,9 @@ void philo_pickup_forks2(t_philo *philo)
 	}
 	print_action(philo, FORK);
 }
+*/
 
-void philo_pickup_forks(t_philo *philo)
+void *philo_pickup_forks(t_philo *philo)
 {
 	int	philo_index;
 	int	last_philo;
@@ -98,17 +105,17 @@ void philo_pickup_forks(t_philo *philo)
 	last_philo = philo->data->num_philos - 1;
 	if (philo_index % 2 == 0)
 	{	
-		pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index]));
+		pthread_mutex_lock(&(philo->arr_forks[philo_index]));
     // printf("philo %i took fork %i\n", philo_index,philo_index);
 		print_action(philo, FORK);
 		if (philo_index == last_philo)
 		{
-			pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
+			pthread_mutex_lock(&(philo->arr_forks[0]));
 			// printf("philo %i took fork %i\n", philo_index, 0);
 		}
 		else
 		{
-		pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index + 1]));
+		pthread_mutex_lock(&(philo->arr_forks[philo_index + 1]));
 		// printf("philo %i took fork %i\n", philo_index, philo_index + 1);
 		}
 	}
@@ -116,19 +123,20 @@ void philo_pickup_forks(t_philo *philo)
 	{
 		if (philo_index == last_philo)
 		{
-			pthread_mutex_lock(&(philo->mutex->arr_forks[0]));
+			pthread_mutex_lock(&(philo->arr_forks[0]));
 			// printf("philo %i took fork %i\n", philo_index, 0);
 		}
 		else
 		{
-			pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index + 1]));
+			pthread_mutex_lock(&(philo->arr_forks[philo_index + 1]));
 			// printf("philo %i took fork %i\n", philo_index, philo_index + 1);
 		}
 		print_action(philo, FORK);
-		pthread_mutex_lock(&(philo->mutex->arr_forks[philo_index]));
+		pthread_mutex_lock(&(philo->arr_forks[philo_index]));
 		// printf("philo %i took fork %i\n", philo_index,philo_index);
 		print_action(philo, FORK);
 	}
+	return (NULL);
 }
 
 void philo_drop_forks(t_philo *philo)
@@ -141,19 +149,19 @@ void philo_drop_forks(t_philo *philo)
 
   if (philo_index % 2 == 0)
   {
-	  pthread_mutex_unlock(&(philo->mutex->arr_forks[philo_index]));
+	  pthread_mutex_unlock(&(philo->arr_forks[philo_index]));
 	  if (philo_index == last_philo)
-      pthread_mutex_unlock(&(philo->mutex->arr_forks[0]));
+      pthread_mutex_unlock(&(philo->arr_forks[0]));
     else
-      pthread_mutex_unlock(&(philo->mutex->arr_forks[philo_index + 1]));
+      pthread_mutex_unlock(&(philo->arr_forks[philo_index + 1]));
   }
   else
   {
 	  if (philo_index == last_philo)
-      pthread_mutex_unlock(&(philo->mutex->arr_forks[0]));
+      pthread_mutex_unlock(&(philo->arr_forks[0]));
     else
-      pthread_mutex_unlock(&(philo->mutex->arr_forks[philo_index + 1]));
-	  pthread_mutex_unlock(&(philo->mutex->arr_forks[philo_index]));
+      pthread_mutex_unlock(&(philo->arr_forks[philo_index + 1]));
+	  pthread_mutex_unlock(&(philo->arr_forks[philo_index]));
   }
 }
 
@@ -161,11 +169,10 @@ void	*philo_eat(t_philo *philo)
 {
 	if (is_philo_dead(philo) == 1)
 		return (NULL);
-	philo_pickup_forks2(philo);
+	philo_pickup_forks(philo);
 	if (is_philo_dead(philo) == 1)
 	{
 		philo_drop_forks(philo);
-		end_simulation(philo);
 		return (NULL);
 	}
 	print_action(philo, EAT);
@@ -199,9 +206,9 @@ void	end_simulation(t_waiter *waiter, int index)
 	time = current_timestamp_ms();
 	while (i < waiter->data->num_philos)
 	{
-		pthread_mutex_lock(&(waiter->arr_m_philo_status[i]);
+		pthread_mutex_lock(&(waiter->arr_m_philo_status[i]));
 		waiter->arr_philo_status[i] = 1;
-		pthread_mutex_unlock(&(waiter->arr_m_philo_status[i]);
+		pthread_mutex_unlock(&(waiter->arr_m_philo_status[i]));
 		i++;
 	}
 	if (index >= 0)
@@ -223,7 +230,7 @@ int check_philo_status(t_waiter *waiter)
 	time_now = current_timestamp_ms();
 	while (i < waiter->data->num_philos)
 	{
-		philo = waiter->arr_philos[i];
+		philo = &waiter->arr_philos[i];
   		ms_since_last_meal = time_now - philo->last_meal_ms;
 		if (ms_since_last_meal > waiter->data->time_to_die)
 			return (philo->index);
@@ -250,6 +257,7 @@ int check_n_eaten(t_waiter *waiter)
 			pthread_mutex_unlock(&(waiter->arr_m_n_eaten[i]));
 			break;
 		}
+	}
 	if (i == waiter->data->num_philos)
 		return (1);
 	else
@@ -261,7 +269,7 @@ void *monitor_threads(void *w)
 	int			index;
 	t_waiter	*waiter;
 
-	waiter = (t_waier *)w;
+	waiter = (t_waiter *)w;
 	while (1)
 	{
 		index = check_philo_status(waiter);
@@ -270,7 +278,7 @@ void *monitor_threads(void *w)
 			end_simulation(waiter, index);
 			break ;
 		}
-		if (check_n_eaten == 1)
+		if (check_n_eaten(waiter) == 1)
 		{
 			end_simulation(waiter, -1);
 			break ;
@@ -287,7 +295,7 @@ int	run_threads(t_table *table)
 
 	i = 0;
 	n_philosophers = table->data->num_philos;
-	pthread_create(&(table->thread_philo), NULL, monitor_threads,
+	pthread_create(&(table->thread_waiter), NULL, monitor_threads,
                 &(table->waiter));
 	while (i < n_philosophers)
 	{
@@ -305,6 +313,7 @@ int	wait_threads(t_table *table)
 
 	i = 0;
 	n_philosophers = table->data->num_philos;
+	pthread_join(table->thread_waiter, NULL);
 	while (i < n_philosophers)
 	{
 		pthread_join(table->arr_threads[i], NULL);
@@ -325,7 +334,7 @@ int main(int argc, char **argv)
 	run_threads(table);
 
 	wait_threads(table);
-	pthread_mutex_destroy(&(table->mutex->arr_forks[0]));
+	pthread_mutex_destroy(&(table->arr_philos[0].arr_forks[0]));
 	//print_input(table->data, table->arr_philos);	
 	// print EXIT OF PROGRAM, if SUCCESS print nothing
 	//if (exit != SUCCESS)

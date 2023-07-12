@@ -6,11 +6,27 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/25 13:22:53 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/07/12 13:52:31 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/07/12 16:43:57 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+
+t_exit_code	init_mutex_forks(t_waiter *waiter, int num_forks)
+{
+	int	i;
+
+	i = 0;
+	waiter->arr_forks = malloc(sizeof(pthread_mutex_t) * waiter->data->num_philos);
+	while (i < num_forks)
+	{
+		pthread_mutex_init(&(waiter->arr_forks[i]), NULL);
+		// this can possibly fail as well
+		i++;
+	}
+	return (SUCCESS);
+}
+
 
 t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 {
@@ -19,7 +35,6 @@ t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 
 	data = malloc(sizeof(t_data));
 	CHECK_MALLOC(data, exit_code);
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(data, data->num_forks)));
 	if (exit_code == SUCCESS)
 	{
 		data->num_philos = ft_atoi(argv[1]);
@@ -34,20 +49,6 @@ t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 	}
 	*p_data = data;
 	return (exit_code);
-}
-
-t_exit_code	init_mutex_forks(t_waiter *waiter, int num_forks)
-{
-	int	i;
-
-	i = 0;
-	while (i < num_forks)
-	{
-		pthread_mutex_init(&(waiter->arr_forks[i]), NULL);
-		// this can possibly fail as well
-		i++;
-	}
-	return (SUCCESS);
 }
 
 t_exit_code init_mutex_print(t_data *data)
@@ -111,9 +112,10 @@ t_exit_code	init_philos(t_philo **p_arr_philos, t_waiter *waiter, t_data *data)
 			(arr_philos[i]).data = data;
 			(arr_philos[i]).m_n_eaten = waiter->arr_m_n_eaten[i];
 			(arr_philos[i]).n_eaten = waiter->arr_n_eaten[i];
-			(arr_philos[i]).m_philo_status = waiter->arr_philo_status[i];
+			(arr_philos[i]).m_philo_status = waiter->arr_m_philo_status[i];
 			(arr_philos[i]).philo_status = waiter->arr_philo_status[i];
 			(arr_philos[i]).last_meal_ms = 0;
+			(arr_philos[i]).print = waiter->print;
 			i++;
 		}
 	}
@@ -182,19 +184,21 @@ t_exit_code	init_waiter(t_waiter **p_waiter, t_data *data)
 
 	i = 0;
 	exit_code = 0;
-	waiter = malloc(sizof(t_waiter));
+	waiter = malloc(sizeof(t_waiter));
 	waiter->arr_m_philo_status = malloc(sizeof(pthread_mutex_t) * data->num_philos);
 	waiter->arr_m_n_eaten = malloc(sizeof(pthread_mutex_t) * data->num_philos);
 	waiter->arr_philo_status = malloc(sizeof(int) * data->num_philos);
 	waiter->arr_n_eaten = malloc(sizeof(int) * data->num_philos);
 	waiter->data = data;
-	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(waiter, data->num_forks)));
+	init_mutex_forks(waiter, data->num_forks);
+	pthread_mutex_init(waiter->print) /// i stopped here
+	//ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(waiter, data->num_forks)));
 	while(i < data->num_philos)
 	{
-		arr_philo_status[i] = 0;
-		arr_n_eaten[i] = 0;
-		pthread_mutex_init(&(arr_m_philo_status[i]), NULL);
-		pthread_mutex_init(&(arr_m_n_eaten[i]), NULL);
+		waiter->arr_philo_status[i] = 0;
+		waiter->arr_n_eaten[i] = 0;
+		pthread_mutex_init(&(waiter->arr_m_philo_status[i]), NULL);
+		pthread_mutex_init(&(waiter->arr_m_n_eaten[i]), NULL);
 		i++;
 	}
 	*p_waiter = waiter;
@@ -213,7 +217,7 @@ t_exit_code	init(t_table **table, int argc, char **argv)
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_waiter(&waiter, data)));
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_philos(&philos, waiter, data)));
 	ON_SUCCESS(exit, UPDATE_EXIT(exit, init_table(table, data, waiter, philos)));
-	waiter->arr_philos = table->arr_philos;
+	waiter->arr_philos = (*table)->arr_philos;
 	if (exit != SUCCESS)
 		cleanup(*table, philos, waiter, data);
 	return (exit);

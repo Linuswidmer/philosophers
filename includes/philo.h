@@ -29,6 +29,8 @@ typedef struct s_mutex {
 }	t_mutex;
 */
 
+typedef struct s_philo t_philo;
+
 typedef struct s_waiter {
 	t_data			*data;
 	pthread_mutex_t	print;
@@ -37,6 +39,7 @@ typedef struct s_waiter {
 	pthread_mutex_t	*arr_m_n_eaten;
 	int				*arr_n_eaten;
 	t_philo			*arr_philos;
+	pthread_mutex_t	*arr_forks;
 }	t_waiter;
 
 typedef struct s_philo {
@@ -56,6 +59,7 @@ typedef struct	s_table {
 	t_philo		*arr_philos;
 	pthread_t	*arr_threads;
 	pthread_t	thread_waiter;
+	t_waiter	*waiter;
 } t_table;
 
 typedef enum {
