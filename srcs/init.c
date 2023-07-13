@@ -6,7 +6,7 @@
 /*   By: lwidmer <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/25 13:22:53 by lwidmer           #+#    #+#             */
-/*   Updated: 2023/07/12 16:43:57 by lwidmer          ###   ########.fr       */
+/*   Updated: 2023/07/13 09:21:23 by lwidmer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,10 +38,11 @@ t_exit_code	init_data(t_data **p_data, int argc, char **argv)
 	if (exit_code == SUCCESS)
 	{
 		data->num_philos = ft_atoi(argv[1]);
-		data->time_to_die = ft_atoi(argv[2]); 
-		data->time_to_eat = ft_atoi(argv[3]);
-		data->time_to_sleep = ft_atoi(argv[4]);
+		data->time_to_die = ft_atoi(argv[2]) * 1000; 
+		data->time_to_eat = ft_atoi(argv[3]) * 1000;
+		data->time_to_sleep = ft_atoi(argv[4]) * 1000;
 		data->num_forks = data->num_philos;
+		data->time_sim_start = current_timestamp_ms();
 		if (argc == 6)
 			data->n_has_to_eat = ft_atoi(argv[5]);
 		else
@@ -114,7 +115,7 @@ t_exit_code	init_philos(t_philo **p_arr_philos, t_waiter *waiter, t_data *data)
 			(arr_philos[i]).n_eaten = waiter->arr_n_eaten[i];
 			(arr_philos[i]).m_philo_status = waiter->arr_m_philo_status[i];
 			(arr_philos[i]).philo_status = waiter->arr_philo_status[i];
-			(arr_philos[i]).last_meal_ms = 0;
+			(arr_philos[i]).last_meal_ms = current_timestamp_ms(); // ihave to improve this
 			(arr_philos[i]).print = waiter->print;
 			i++;
 		}
@@ -191,7 +192,7 @@ t_exit_code	init_waiter(t_waiter **p_waiter, t_data *data)
 	waiter->arr_n_eaten = malloc(sizeof(int) * data->num_philos);
 	waiter->data = data;
 	init_mutex_forks(waiter, data->num_forks);
-	pthread_mutex_init(waiter->print) /// i stopped here
+	pthread_mutex_init(&(waiter->print), NULL);
 	//ON_SUCCESS(exit, UPDATE_EXIT(exit, init_mutex_forks(waiter, data->num_forks)));
 	while(i < data->num_philos)
 	{
